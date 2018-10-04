@@ -208,7 +208,7 @@
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-clients_2.11</artifactId>
       <version>1.8.0</version>
-    </dependency> 
+    </dependency>
     <dependency>
       <groupId>org.apache.flink</groupId>
       <artifactId>flink-yarn_2.11</artifactId>

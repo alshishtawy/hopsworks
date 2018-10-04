@@ -116,6 +116,7 @@ public class YarnRunner {
   private YarnClusterDescriptor flinkCluster;
   private ClusterSpecification flinkClusterSpecification;
   private String appJarPath;
+  private String appMainClass;
   private final String amJarLocalName;
   private final String amJarPath;
   private final String amQueue;
@@ -292,22 +293,31 @@ public class YarnRunner {
           "FLINK: YarnRunner got a Flink Job!", appId);
       // Objects needed for materializing user certificates
       //TOCHECK: Ahmad     flinkCluster.setCertsObjects(services, project, username, javaOptions);
-      
-      //Moved after deploy job cluster
-      //YarnClusterClient client = flinkCluster.deploy();
-      //appId = client.getApplicationId();
-      String[] args = {};
-      if (amArgs != null) {
-        if (!javaOptions.isEmpty()) {
-          amArgs += " --kafka_params \"";
-          for (String s : javaOptions) {
-            amArgs += s + ",";
-          }
-          amArgs = amArgs.substring(0, amArgs.length() - 1);
-          amArgs += "\"";
-        }
-        args = amArgs.trim().split(" ");
+   // When Hops RPC TLS is enabled, Yarn will take care of application certificate
+      if (!services.getSettings().getHopsRpcTls()) {
+        copyUserCertificates(project, jobType, dfso, username,
+            appId.toString());
       }
+
+      
+      
+      
+      // TODO (Ahmad): is this needed???
+      String[] args = {};
+//      if (amArgs != null) {
+//        if (!javaOptions.isEmpty()) {
+//          amArgs += " --kafka_params \"";
+//          for (String s : javaOptions) {
+//            amArgs += s + ",";
+//          }
+//          amArgs = amArgs.substring(0, amArgs.length() - 1);
+//          amArgs += "\"";
+//        }
+//        args = amArgs.trim().split(" ");
+//      }
+      args = amArgs.trim().split(" ");
+//
+
 
       /*
        * Copy the appjar to the localOS as it is needed by the Flink client
@@ -340,9 +350,16 @@ public class YarnRunner {
         //Copy Flink jar to local machine and pass it to the classpath
         URL flinkURL = new File(serviceDir + "/"
             + Settings.FLINK_LOCRSC_FLINK_JAR).toURI().toURL();
+        // TODO (Ahmad): Hard coded jars for testing!!! Fix this!
+        URL beamRunnerURL = new File(serviceDir + "/lib/beam-runners-flink_2.11-2.6.0.jar").toURI().toURL();        
+        URL beamHarnessURL = new File(serviceDir + "/lib/beam-sdks-java-harness-2.6.0.jar").toURI().toURL();
+        URL beamHdfsURL = new File(serviceDir + "/lib/beam-sdks-java-io-hadoop-file-system-2.6.0.jar").toURI().toURL();
         classpaths.add(flinkURL);
+        classpaths.add(beamRunnerURL);
+        classpaths.add(beamHarnessURL);
+        classpaths.add(beamHdfsURL);
         logger.log(Level.INFO, "FLINK: Packaging the Flink program...");
-        PackagedProgram packagedProgram = new PackagedProgram(file, classpaths, args);
+        PackagedProgram packagedProgram = new PackagedProgram(file, classpaths, appMainClass, args);
         JobGraph jobGraph = PackagedProgramUtils.createJobGraph(packagedProgram,
                 flinkCluster.getFlinkConfiguration(), parallelism);
      
@@ -360,7 +377,7 @@ public class YarnRunner {
  
         
       } catch (ProgramInvocationException ex) {
-        logger.log(Level.WARNING, "FLINK: Error while submitting Flink job to cluster ",
+        logger.log(Level.WARNING, "FLINK: Error ProgramInvocationException while submitting Flink job to cluster ",
             ex);
         //Kill the flink job here
         Runtime rt = Runtime.getRuntime();
@@ -369,7 +386,7 @@ public class YarnRunner {
                 + " ProgramInvocationException : " + ex.getMessage());
       } catch (ClusterDeploymentException ex) {
           // TODO: Ahmad handle this exception
-        logger.log(Level.WARNING, "FLINK: Error while submitting Flink job to cluster ", ex);
+        logger.log(Level.WARNING, "FLINK: Error ClusterDeploymentException while submitting Flink job to cluster ", ex);
         throw new IOException("FLINK: Error while submitting Flink job to cluster,"
                 + " ClusterDeploymentException : " + ex.getMessage());
       } finally {
@@ -675,6 +692,7 @@ public class YarnRunner {
     this.flinkCluster = builder.flinkCluster;
     this.flinkClusterSpecification = builder.flinkClusterSpecification;
     this.appJarPath = builder.appJarPath;
+    this.appMainClass = builder.appMainClass;
     this.amQueue = builder.amQueue;
     this.amMemory = builder.amMemory;
     this.amVCores = builder.amVCores;
@@ -737,6 +755,7 @@ public class YarnRunner {
     private int parallelism;
     private YarnClusterDescriptor flinkCluster;
     private String appJarPath;
+    private String appMainClass;
     //Optional attributes
     // Queue for App master
     private String amQueue = "default"; //TODO(Theofilos): enable changing this, or infer from user data
@@ -904,6 +923,10 @@ public class YarnRunner {
 
     public void setAppJarPath(String path) {
       this.appJarPath = path;
+    }
+    
+    public void setAppMainClass(String appMainClass) {
+      this.appMainClass = appMainClass;
     }
 
     /**
