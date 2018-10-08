@@ -367,11 +367,13 @@ public class YarnRunner {
         }
         //Copy job jar locaclly so that Flink client has access to it 
         //in YarnRunner
+        conf.setStrings("dfs.user.home.dir.prefix", localResourcesBasePath);
         FileSystem fs = FileSystem.get(conf);
         Path homeDir = fs.getHomeDirectory();
         logger.log(Level.INFO,
           "FLINK: getHomeDirectory() = {0}", homeDir.toString());
-        flinkCluster.setFs(fs);
+        
+        // flinkCluster.setHomeDir(homeDir);
         
         logger.log(Level.INFO, "FLINK: Copying files {0}", appJarPath);
         fs.copyToLocalFile(new Path(appJarPath), new Path(localPathAppJarDir + "/"
