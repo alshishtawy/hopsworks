@@ -432,9 +432,9 @@ public class YarnRunner {
         
         
         //Beam and Flink
-        File[] flinkLibs = new File(serviceDir + "/lib").listFiles();
+        File[] beamLibs = new File(serviceDir + "/lib-beam").listFiles();
 
-        for(File f: flinkLibs){
+        for(File f: beamLibs){
           URL u = f.toURI().toURL();
           classpaths.add(u);
           logger.log(Level.INFO, "FLINK: Adding to class path: {0} ", u);
@@ -442,7 +442,10 @@ public class YarnRunner {
         }
 
 
-       
+        Map<String, String> env = System.getenv();
+        for (Map.Entry<String, String> entry : env.entrySet()) {
+          logger.log(Level.INFO, "FLINK: env {0} = {1}", new Object[]{entry.getKey(), entry.getValue()});
+        }
 
 
 
