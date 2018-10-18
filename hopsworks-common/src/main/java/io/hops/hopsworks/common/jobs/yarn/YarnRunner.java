@@ -67,6 +67,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import io.hops.hopsworks.common.yarn.YarnClientService;
+import io.hops.tensorflow.LocalResourceInfo;
+import java.util.LinkedList;
 import org.apache.flink.client.deployment.ClusterDeploymentException;
 import org.apache.flink.client.deployment.ClusterSpecification;
 import org.apache.flink.client.program.PackagedProgram;
@@ -465,7 +467,8 @@ public class YarnRunner {
         //fillInAppid(appId.toString());
 
         
-        
+        flinkCluster.setStagingDir(new Path(localResourcesBasePath));
+        //flinkCluster.setFs(fs);
         
         /*
         * Copy the appjar to the localOS as it is needed by the Flink client
@@ -490,24 +493,16 @@ public class YarnRunner {
         // Don't know what effect dfs.user.home.dir.prefix has!!
         // conf.set("dfs.user.home.dir.prefix", localResourcesBasePath);
         FileSystem fs = FileSystem.get(conf);
-        Path homeDir = fs.getHomeDirectory();
-        logger.log(Level.INFO,
-          "FLINK: getHomeDirectory() = {0}", homeDir.toString());
         
-        // flinkCluster.setHomeDir(homeDir);
-        
-        flinkCluster.setStagingDir(new Path(localResourcesBasePath));
-        //flinkCluster.setFs(fs);
-        
-        logger.log(Level.INFO, "FLINK: Copying files {0}", appJarPath);
-        fs.copyToLocalFile(new Path(appJarPath), new Path(localPathAppJarDir + "/"
-            + appJarName));
-        //app.jar path 
-        File file = new File(localPathAppJarDir + "/" + appJarName);
+        String localAppJarPath = localPathAppJarDir + "/" + appJarName;
+        logger.log(Level.INFO, "FLINK: Copying App Jar file {0} to {1}", new Object[] {appJarPath, localAppJarPath});
+        fs.copyToLocalFile(new Path(appJarPath), new Path(localAppJarPath));
+        //app.jar path
+        File localAppJarFile = new File(localAppJarPath);
 
         
         logger.log(Level.INFO, "FLINK: Packaging the Flink program...");
-        PackagedProgram packagedProgram = new PackagedProgram(file, classpaths, appMainClass, args);
+        PackagedProgram packagedProgram = new PackagedProgram(localAppJarFile, classpaths, appMainClass, args);
         JobGraph jobGraph = PackagedProgramUtils.createJobGraph(packagedProgram,
                 flinkCluster.getFlinkConfiguration(), parallelism);
 
@@ -961,6 +956,7 @@ public class YarnRunner {
     private List<String> javaOptions = new ArrayList<>();
     //List of files to be removed after starting AM.
     private List<String> filesToRemove = new ArrayList<>();
+    private List<File> flinkShipFiles = new LinkedList<>();
 
     //Hadoop Configuration
     private Configuration conf;
@@ -1093,6 +1089,17 @@ public class YarnRunner {
     
     public void setFlinkClusterSpecification(ClusterSpecification flinkClusterSpecification) {
       this.flinkClusterSpecification = flinkClusterSpecification;
+    }
+    
+    /**
+   * Adds the given HDFS files to the list of files to ship.
+   * Files will be copied to local temp dir and shipped by Flink
+   * The local files will also be added to Flink Client classpath to generate Job Graph
+   *
+   * @param shipFiles files to ship
+   */
+    public void addFlinkShipFiles(List<File> shipFiles) {
+      this.flinkShipFiles.addAll(shipFiles);
     }
 
     public void setAppJarPath(String path) {
