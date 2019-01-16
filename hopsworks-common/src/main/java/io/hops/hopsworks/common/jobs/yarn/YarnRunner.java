@@ -133,6 +133,7 @@ public class YarnRunner {
   //The parallelism parameter of Flink
   private int parallelism;
   private boolean detached;
+  private boolean clusterMode;
   private HopsYarnClusterDescriptor flinkCluster;
   private ClusterSpecification flinkClusterSpecification;
   private String appJarPath;
@@ -545,9 +546,24 @@ public class YarnRunner {
                   services.getCertificateMaterializer(), services.getSettings().getHopsRpcTls());
         }
      
-        logger.log(Level.INFO, "FLINK: Attempting to deploy a job cluster..");
-        ClusterClient<ApplicationId> clusterClient = 
-                flinkCluster.deployJobCluster(flinkClusterSpecification, jobGraph, detached);
+        ClusterClient<ApplicationId> clusterClient;
+        if(!clusterMode) {
+          logger.log(Level.INFO, "FLINK: Attempting to deploy a job cluster..");
+          clusterClient = 
+                  flinkCluster.deployJobCluster(flinkClusterSpecification, jobGraph, detached);
+        } else {
+          logger.log(Level.INFO, "FLINK: Attempting to deploy a session cluster..");
+          clusterClient = 
+                  flinkCluster.deploySessionCluster(flinkClusterSpecification);
+          if (detached) {
+            logger.log(Level.INFO, "FLINK: .. in detached mode");
+            clusterClient.runDetached(jobGraph, java.lang.ClassLoader.getSystemClassLoader());
+          } else {
+            clusterClient.run(jobGraph, java.lang.ClassLoader.getSystemClassLoader());
+            logger.log(Level.INFO, "FLINK: .. in attached mode");
+
+          }
+        }
         
                
         appId = clusterClient.getClusterId();
@@ -872,6 +888,7 @@ public class YarnRunner {
     this.jobType = builder.jobType;
     this.parallelism = builder.parallelism;
     this.detached = builder.detached;
+    this.clusterMode = builder.clusterMode;
     this.flinkCluster = builder.flinkCluster;
     this.flinkClusterSpecification = builder.flinkClusterSpecification;
     this.appJarPath = builder.appJarPath;
@@ -938,6 +955,7 @@ public class YarnRunner {
     //Flink parallelism
     private int parallelism;
     private boolean detached;
+    private boolean clusterMode;
     private HopsYarnClusterDescriptor flinkCluster;
     private String appJarPath;
     private String appMainClass;
@@ -1106,6 +1124,10 @@ public class YarnRunner {
      */
     public void setDetached(boolean detached) {
       this.detached = detached;
+    }
+    
+    public void setClusterMode(boolean clusterMode) {
+      this.clusterMode = clusterMode;
     }
 
     public void setFlinkCluster(HopsYarnClusterDescriptor flinkCluster) {
@@ -1305,6 +1327,8 @@ public class YarnRunner {
       }
       return new YarnRunner(this);
     }
+
+
 
   }
 

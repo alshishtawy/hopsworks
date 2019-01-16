@@ -128,7 +128,7 @@ public class FlinkYarnRunnerBuilder {
   private Path flinkJarPath;
   private StringBuilder dynamicPropertiesEncoded;
   private boolean detached;
-  private boolean streamingMode = true;
+  private boolean clusterMode = false;
   private int parallelism;
   private String customName = null;
   private final Map<String, String> sysProps = new HashMap<>();
@@ -223,12 +223,14 @@ public class FlinkYarnRunnerBuilder {
     return this.taskManagerCount;
   }
 
+  
   public boolean isStreamingMode() {
-    return streamingMode;
+    return clusterMode;
   }
 
+  //TODO: Ahmad: Change to setClusterMode
   public void setStreamingMode(boolean streamingMode) {
-    this.streamingMode = streamingMode;
+    this.clusterMode = streamingMode;
   }
 
   public void setDynamicPropertiesEncoded(StringBuilder dynamicPropertiesEncoded) {
@@ -479,6 +481,7 @@ public class FlinkYarnRunnerBuilder {
     builder.setAppMainClass(appMainClass);
     builder.setParallelism(parallelism);
     builder.setDetached(detached);
+    builder.setClusterMode(clusterMode);
 
     String name;
     if (customName == null) {
