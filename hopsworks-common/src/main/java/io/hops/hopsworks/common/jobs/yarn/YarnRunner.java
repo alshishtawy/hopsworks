@@ -116,6 +116,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalException;
 
 /**d
  * <p>
@@ -555,14 +556,23 @@ public class YarnRunner {
           logger.log(Level.INFO, "FLINK: Attempting to deploy a session cluster..");
           clusterClient = 
                   flinkCluster.deploySessionCluster(flinkClusterSpecification);
-          if (detached) {
-            logger.log(Level.INFO, "FLINK: .. in detached mode");
-            clusterClient.runDetached(jobGraph, java.lang.ClassLoader.getSystemClassLoader());
-          } else {
-            clusterClient.run(jobGraph, java.lang.ClassLoader.getSystemClassLoader());
-            logger.log(Level.INFO, "FLINK: .. in attached mode");
-
-          }
+          clusterClient.setDetached(detached);
+          clusterClient.submitJob(jobGraph, java.lang.ClassLoader.getSystemClassLoader());
+          logger.log(Level.INFO, "FLINK: Web interface URL: {0}", clusterClient.getWebInterfaceURL());
+          logger.log(Level.INFO, "FLINK: ClusterConnectionInfo address: {0}",
+                  clusterClient.getClusterConnectionInfo().getAddress());
+          logger.log(Level.INFO, "FLINK: ClusterConnectionInfo address: {0}",
+                  clusterClient.getClusterConnectionInfo().getHostname());
+          logger.log(Level.INFO, "FLINK: ClusterConnectionInfo address: {0}",
+                  clusterClient.getClusterConnectionInfo().getPort());
+//          if (detached) {
+//            logger.log(Level.INFO, "FLINK: .. in detached mode");
+//            clusterClient.runDetached(jobGraph, java.lang.ClassLoader.getSystemClassLoader());
+//          } else {
+//            clusterClient.run(jobGraph, java.lang.ClassLoader.getSystemClassLoader());
+//            logger.log(Level.INFO, "FLINK: .. in attached mode");
+//
+//          }
         }
         
                
@@ -585,6 +595,9 @@ public class YarnRunner {
         logger.log(Level.INFO, "FLINK: Error ClusterDeploymentException while submitting Flink job to cluster ", ex);
         throw new IOException("FLINK: Error while submitting Flink job to cluster,"
                 + " ClusterDeploymentException : " + ex.getMessage());
+      } catch (LeaderRetrievalException ex) {
+        Logger.getLogger(YarnRunner.class.getName())
+                .log(Level.WARNING, "Flink: Could not get ClusterConnectionInfo", ex);
       } finally {
         //Remove local flink app jar
         if(localPathAppJarDir != null) {

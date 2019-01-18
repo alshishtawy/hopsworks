@@ -216,6 +216,10 @@ public class JobsResource {
       case FLINK:
         jobController.deleteJob(job, user);
         break;
+      case FLINK:
+        //TODO: Ahmad: Check if this is the correct way to delete Flink Jobs
+        sparkController.deleteJob(job, user);
+        break;
       default:
         throw new JobException(RESTCodes.JobErrorCode.JOB_TYPE_UNSUPPORTED, Level.FINEST, job.getJobType().toString());
     }
