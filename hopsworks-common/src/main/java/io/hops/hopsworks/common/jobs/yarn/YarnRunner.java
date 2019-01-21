@@ -561,9 +561,9 @@ public class YarnRunner {
           logger.log(Level.INFO, "FLINK: Web interface URL: {0}", clusterClient.getWebInterfaceURL());
           logger.log(Level.INFO, "FLINK: ClusterConnectionInfo address: {0}",
                   clusterClient.getClusterConnectionInfo().getAddress());
-          logger.log(Level.INFO, "FLINK: ClusterConnectionInfo address: {0}",
+          logger.log(Level.INFO, "FLINK: ClusterConnectionInfo hostname: {0}",
                   clusterClient.getClusterConnectionInfo().getHostname());
-          logger.log(Level.INFO, "FLINK: ClusterConnectionInfo address: {0}",
+          logger.log(Level.INFO, "FLINK: ClusterConnectionInfo port: {0}",
                   clusterClient.getClusterConnectionInfo().getPort());
 //          if (detached) {
 //            logger.log(Level.INFO, "FLINK: .. in detached mode");
