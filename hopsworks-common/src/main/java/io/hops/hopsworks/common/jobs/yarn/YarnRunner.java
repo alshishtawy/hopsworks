@@ -462,13 +462,14 @@ public class YarnRunner {
         // create yarn app
         YarnClientApplication yarnApplication = yarnClient.createApplication();
         GetNewApplicationResponse appResponse = yarnApplication.getNewApplicationResponse();
+        
         // and pass it to flink
         flinkCluster.setYarnApplication(yarnApplication);
         flinkCluster.setAppResponse(appResponse);
         
         appId = appResponse.getApplicationId();
-        logger.log(Level.INFO,
-          "FLINK: Created YarnApplication with appId = {0},", appId.toString());
+        fillInAppid(appId.toString());
+        logger.log(Level.INFO,"FLINK: Created YarnApplication with appId = {0},", appId.toString());
         // Set the staging dir
         flinkCluster.setStagingDir(new Path(localResourcesBasePath));
         
@@ -546,7 +547,7 @@ public class YarnRunner {
                   appResponse.getApplicationId().toString(),
                   services.getCertificateMaterializer(), services.getSettings().getHopsRpcTls());
         }
-     
+        
         ClusterClient<ApplicationId> clusterClient;
         if(!clusterMode) {
           logger.log(Level.INFO, "FLINK: Attempting to deploy a job cluster..");
@@ -579,8 +580,8 @@ public class YarnRunner {
         appId = clusterClient.getClusterId();
         logger.log(Level.INFO, "FLINK: Finished deploying cluster with ID {0}", appId.toString());
         
-        // TODO: Ahmad: Is this needed?
-        //fillInAppid(appId.toString());
+        //monitor = new YarnMonitor(appId, newYarnClientWrapper, ycs);
+ 
         
       } catch (ProgramInvocationException ex) {
         logger.log(Level.INFO, "FLINK: Error ProgramInvocationException while submitting Flink job to cluster ",
@@ -664,6 +665,11 @@ public class YarnRunner {
     //Loop through files to remove
     for (ListIterator<String> i = filesToRemove.listIterator(); i.hasNext();) {
       i.set(i.next().replace(APPID_PLACEHOLDER, id));
+    }
+    
+    if(jobType == JobType.FLINK){
+      flinkCluster.setDynamicPropertiesEncoded(flinkCluster.getDynamicPropertiesEncoded().replace(APPID_PLACEHOLDER,
+        id));
     }
   }
 

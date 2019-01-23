@@ -145,6 +145,8 @@ public class FlinkJob extends YarnJob {
     flinkBuilder.setFlinkLoggingConfigurationPath(new Path(
         jobconfig.getFlinkConfDir()));
 
+    
+    flinkBuilder.setJob(jobs);
     flinkBuilder.setTaskManagerMemory(jobconfig.getTaskManagerMemory());
     flinkBuilder.setTaskManagerSlots(jobconfig.getSlots());
     flinkBuilder.setTaskManagerCount(jobconfig.getNumberOfTaskManagers());

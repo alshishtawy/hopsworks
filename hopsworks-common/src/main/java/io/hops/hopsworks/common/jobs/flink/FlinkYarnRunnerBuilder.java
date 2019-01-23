@@ -39,6 +39,7 @@
 
 package io.hops.hopsworks.common.jobs.flink;
 
+import io.hops.hopsworks.common.dao.jobs.description.Jobs;
 import io.hops.hopsworks.common.jobs.AsynchronousJobExecutor;
 import io.hops.hopsworks.common.hdfs.DistributedFileSystemOps;
 import io.hops.hopsworks.common.jobs.configuration.JobType;
@@ -133,6 +134,7 @@ public class FlinkYarnRunnerBuilder {
   private String customName = null;
   private final Map<String, String> sysProps = new HashMap<>();
   private ServiceProperties serviceProps;
+  private Jobs job;
 
   public FlinkYarnRunnerBuilder(String appJarPath, String mainClass) {
     if (appJarPath == null || appJarPath.isEmpty()) {
@@ -149,6 +151,11 @@ public class FlinkYarnRunnerBuilder {
 
   public FlinkYarnRunnerBuilder addAllJobArgs(String[] jobArgs) {
     this.jobArgs.addAll(Arrays.asList(jobArgs));
+    return this;
+  }
+  
+  public FlinkYarnRunnerBuilder setJob(Jobs job) {
+    this.job = job;
     return this;
   }
   
@@ -449,11 +456,25 @@ public class FlinkYarnRunnerBuilder {
 
     cluster.addShipFiles(flinkLib);
     addSystemProperty(Settings.HOPSWORKS_REST_ENDPOINT_PROPERTY, serviceProps.getRestEndpoint());
-    addSystemProperty(Settings.HOPSWORKS_PROJECTID_PROPERTY, Integer.toString(serviceProps.getProjectId()));
-
+    dynamicPropertiesEncoded = new StringBuilder();
+  
+    
+    dynamicPropertiesEncoded.append("env.java.opts").append("=").append("\"-D" + Settings.LOGSTASH_JOB_INFO).append("=")
+      .append(project.toLowerCase() + "," + job.getName() + "," + job.getId() + "," + YarnRunner.APPID_PLACEHOLDER +
+        "\"")
+      .append("@@");
+    dynamicPropertiesEncoded.append(Settings.LOGSTASH_JOB_INFO).append("=").append(project.toLowerCase() +
+      "," + job.getName() + "," + job.getId() + "," + YarnRunner.APPID_PLACEHOLDER).append("@@");
+    //dynamicPropertiesEncoded.append("log4j.configuration").append("=").append(CONFIG_FILE_LOG4J_NAME).append("@@");
+    dynamicPropertiesEncoded.append("state.checkpoints.dir").append("=").append(
+      "hdfs:///Projects/" +project + "/Resources/flink/").append("@@");
+    dynamicPropertiesEncoded.append("log4j.configuration").append("=").append(
+      "/srv/hops/flink/conf/log4j.properties").append("@@");
+    dynamicPropertiesEncoded.append("log4j.properties").append("=").append(
+      "/srv/hops/flink/conf/log4j.properties").append("@@");
     if (!sysProps.isEmpty()) {
       // TODO: Ahmad: But we have a public void setDynamicPropertiesEncoded()! Why overwrite it here without checking?
-      dynamicPropertiesEncoded = new StringBuilder();
+     
       for (String s : sysProps.keySet()) {
         String option = YarnRunner.escapeForShell("-D" + s + "=" + sysProps.get(s));
         builder.addJavaOption(option);
@@ -468,12 +489,15 @@ public class FlinkYarnRunnerBuilder {
        * https://github.com/apache/flink/blob/b410c393c960f55c09fadd4f22732d06f801b938/
        * flink-yarn/src/main/java/org/apache/flink/yarn/cli/FlinkYarnSessionCli.java
        */
-      if (dynamicPropertiesEncoded.length() > 0) {
-        cluster.setDynamicPropertiesEncoded(dynamicPropertiesEncoded.
-                substring(0,
-                        dynamicPropertiesEncoded.
-                                lastIndexOf("@@")));
-      }
+     
+    }
+    
+    
+    if (dynamicPropertiesEncoded.length() > 0) {
+      cluster.setDynamicPropertiesEncoded(dynamicPropertiesEncoded.
+        substring(0,
+          dynamicPropertiesEncoded.
+            lastIndexOf("@@")));
     }
 
     builder.setJobType(JobType.FLINK);
