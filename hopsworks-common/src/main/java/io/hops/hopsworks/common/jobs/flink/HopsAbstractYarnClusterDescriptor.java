@@ -19,7 +19,6 @@
 
 package io.hops.hopsworks.common.jobs.flink;
 
-import org.apache.flink.yarn.YarnClusterClient;
 import org.apache.flink.yarn.YarnConfigKeys;
 
 
@@ -273,9 +272,10 @@ public abstract class HopsAbstractYarnClusterDescriptor implements ClusterDescri
    * classpath.
    */
   public boolean hasUserJarFiles(List<URL> requiredJarFiles) {
-    if (userJarInclusion == YarnConfigOptions.UserJarInclusion.DISABLED) {
-      return false;
-    }
+    //TODO(Ahmad): Check if we need this
+//    if (userJarInclusion == YarnConfigOptions.UserJarInclusion.DISABLED) {
+//      return false;
+//    }
     if (userJarFiles.size() != requiredJarFiles.size()) {
       return false;
     }
@@ -881,19 +881,27 @@ public abstract class HopsAbstractYarnClusterDescriptor implements ClusterDescri
             localResources,
             envShipFileList);
 
-    List<String> userClassPaths;
-    if (userJarInclusion != YarnConfigOptions.UserJarInclusion.DISABLED) {
-      userClassPaths = uploadAndRegisterFiles(
-              userJarFiles,
-              fs,
-              homeDir,
-              appId,
-              paths,
-              localResources,
-              envShipFileList);
-    } else {
-      userClassPaths = Collections.emptyList();
-    }
+    List<String> userClassPaths = uploadAndRegisterFiles(
+                    userJarFiles,
+                    fs,
+                    homeDir,
+                    appId,
+                    paths,
+                    localResources,
+                    envShipFileList);
+    //TODO(Ahmad): Check if we need
+//    if (userJarInclusion != YarnConfigOptions.UserJarInclusion.DISABLED) {
+//      userClassPaths = uploadAndRegisterFiles(
+//              userJarFiles,
+//              fs,
+//              homeDir,
+//              appId,
+//              paths,
+//              localResources,
+//              envShipFileList);
+//    } else {
+//      userClassPaths = Collections.emptyList();
+//    }
 
     if (userJarInclusion == YarnConfigOptions.UserJarInclusion.ORDER) {
       systemClassPaths.addAll(userClassPaths);
